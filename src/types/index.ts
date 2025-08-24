@@ -1,3 +1,6 @@
+import { Database } from './database.types';
+import { User as SupabaseUser } from '@supabase/supabase-js';
+
 export interface Patient {
   name: string;
   age: number;
@@ -12,4 +15,13 @@ export interface ExamAnalysis {
   recommendations: string;
   createdAt: Date;
   status: 'analyzing' | 'completed' | 'error';
+}
+
+export type Profile = Database['public']['Tables']['profiles']['Row'];
+
+export interface AuthState {
+  user: SupabaseUser | null;
+  profile: Profile | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
 }
