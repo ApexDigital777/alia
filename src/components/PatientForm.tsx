@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
-import { User, Calendar, Stethoscope, Upload, Send, AlertCircle } from 'lucide-react';
-import { Patient } from '../types';
+import { User, Calendar, Stethoscope, Upload, Send, AlertCircle, Crown } from 'lucide-react';
+import { Patient, Profile } from '../types';
 
 interface PatientFormProps {
+  profile: Profile;
   onSubmit: (patient: Patient, imageFile: File) => void;
+  onUpgradeRequired: () => void;
   isAnalyzing: boolean;
 }
 
-const PatientForm: React.FC<PatientFormProps> = ({ onSubmit, isAnalyzing }) => {
+const PatientForm: React.FC<PatientFormProps> = ({ profile, onSubmit, onUpgradeRequired, isAnalyzing }) => {
   const [patient, setPatient] = useState<Patient>({
     name: '',
     age: 0,
@@ -63,6 +65,11 @@ const PatientForm: React.FC<PatientFormProps> = ({ onSubmit, isAnalyzing }) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (profile.plan === 'free') {
+      onUpgradeRequired();
+      return;
+    }
+    
     if (validateForm() && imageFile) {
       onSubmit(patient, imageFile);
     }
@@ -71,12 +78,45 @@ const PatientForm: React.FC<PatientFormProps> = ({ onSubmit, isAnalyzing }) => {
   return (
     <div className="bg-white rounded-xl shadow-lg p-6 md:p-8">
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Novo Exame</h2>
-        <p className="text-gray-600">Insira os dados do paciente e faça upload do exame para análise</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Novo Exame</h2>
+            <p className="text-gray-600">Insira os dados do paciente e faça upload do exame para análise</p>
+          </div>
+          
+          <div className={`px-4 py-2 rounded-full text-sm font-medium ${
+            profile.plan === 'premium' 
+              ? 'bg-yellow-100 text-yellow-800 border border-yellow-300' 
+              : 'bg-gray-100 text-gray-800 border border-gray-300'
+          }`}>
+            {profile.plan === 'premium' ? (
+              <div className="flex items-center">
+                <Crown className="w-4 h-4 mr-1" />
+                Premium
+              </div>
+            ) : (
+              'Gratuito'
+            )}
+          </div>
+        </div>
+
+        {profile.plan === 'free' && (
+          <div className="mt-4 bg-orange-50 border border-orange-200 rounded-lg p-4">
+            <div className="flex items-start space-x-3">
+              <AlertCircle className="w-5 h-5 text-orange-600 mt-0.5 flex-shrink-0" />
+              <div>
+                <h4 className="font-medium text-orange-900 mb-1">Plano Gratuito</h4>
+                <p className="text-sm text-orange-800">
+                  Você está no plano gratuito. Para realizar análises com nossa IA avançada, 
+                  faça upgrade para o <strong>Plano Premium</strong>.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Nome do Paciente */}
         <div>
           <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
             <User className="w-4 h-4 mr-2" />
@@ -100,7 +140,6 @@ const PatientForm: React.FC<PatientFormProps> = ({ onSubmit, isAnalyzing }) => {
           )}
         </div>
 
-        {/* Idade */}
         <div>
           <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
             <Calendar className="w-4 h-4 mr-2" />
@@ -126,7 +165,6 @@ const PatientForm: React.FC<PatientFormProps> = ({ onSubmit, isAnalyzing }) => {
           )}
         </div>
 
-        {/* Sintomas */}
         <div>
           <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
             <Stethoscope className="w-4 h-4 mr-2" />
@@ -142,7 +180,6 @@ const PatientForm: React.FC<PatientFormProps> = ({ onSubmit, isAnalyzing }) => {
           />
         </div>
 
-        {/* Upload de Imagem */}
         <div>
           <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
             <Upload className="w-4 h-4 mr-2" />
@@ -207,21 +244,29 @@ const PatientForm: React.FC<PatientFormProps> = ({ onSubmit, isAnalyzing }) => {
           )}
         </div>
 
-        {/* Botão de Envio */}
         <button
           type="submit"
           disabled={isAnalyzing}
-          className="w-full flex items-center justify-center px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className={`w-full flex items-center justify-center px-6 py-3 font-medium rounded-lg focus:ring-2 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+            profile.plan === 'premium'
+              ? 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500'
+              : 'bg-gradient-to-r from-yellow-400 to-orange-500 text-black hover:from-yellow-500 hover:to-orange-600 focus:ring-yellow-500'
+          }`}
         >
           {isAnalyzing ? (
             <>
               <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
               Analisando Exame...
             </>
-          ) : (
+          ) : profile.plan === 'premium' ? (
             <>
               <Send className="w-5 h-5 mr-2" />
               Analisar Exame
+            </>
+          ) : (
+            <>
+              <Crown className="w-5 h-5 mr-2" />
+              Fazer Upgrade para Analisar
             </>
           )}
         </button>

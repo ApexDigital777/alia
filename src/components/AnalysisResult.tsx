@@ -1,7 +1,9 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { FileText, User, Calendar, Stethoscope, CheckCircle, AlertTriangle, Download } from 'lucide-react';
+import { FileText, User, Calendar, Stethoscope, CheckCircle, AlertTriangle, Download, FileDown } from 'lucide-react';
 import { ExamAnalysis } from '../types';
+import { formatTextForDisplay } from '../utils/textFormatter';
+import { generateCompletePDFReport, generateAnalysisPDF, generateRecommendationsPDF } from '../utils/pdfGenerator';
 
 interface AnalysisResultProps {
   analysis: ExamAnalysis;
@@ -9,40 +11,31 @@ interface AnalysisResultProps {
 }
 
 const AnalysisResult: React.FC<AnalysisResultProps> = ({ analysis, onNewAnalysis }) => {
-  const handleDownloadReport = () => {
-    const reportContent = `
-LAUDO MÉDICO - ANÁLISE POR IA
-================================
+  const handleDownloadComplete = () => {
+    try {
+      generateCompletePDFReport(analysis);
+    } catch (error) {
+      console.error('Erro ao gerar PDF completo:', error);
+      alert('Erro ao gerar o relatório PDF. Tente novamente.');
+    }
+  };
 
-DADOS DO PACIENTE:
-Nome: ${analysis.patient.name}
-Idade: ${analysis.patient.age} anos
-Sintomas: ${analysis.patient.symptoms || 'Não informado'}
-Data do Exame: ${analysis.createdAt.toLocaleDateString('pt-BR')}
+  const handleDownloadAnalysis = () => {
+    try {
+      generateAnalysisPDF(analysis);
+    } catch (error) {
+      console.error('Erro ao gerar PDF da análise:', error);
+      alert('Erro ao gerar o PDF da análise. Tente novamente.');
+    }
+  };
 
-ANÁLISE TÉCNICA:
-${analysis.analysis}
-
-RECOMENDAÇÕES:
-${analysis.recommendations}
-
-________________________________
-IMPORTANTE: Esta análise foi gerada por inteligência artificial e serve apenas como auxílio diagnóstico. 
-NÃO substitui a avaliação de um médico especialista. Sempre consulte um profissional médico qualificado 
-para diagnóstico e tratamento definitivos.
-
-Gerado pela Plataforma ALIA
-    `;
-
-    const blob = new Blob([reportContent], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `laudo_${analysis.patient.name.replace(/\s+/g, '_')}_${analysis.createdAt.toISOString().split('T')[0]}.txt`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+  const handleDownloadRecommendations = () => {
+    try {
+      generateRecommendationsPDF(analysis);
+    } catch (error) {
+      console.error('Erro ao gerar PDF das recomendações:', error);
+      alert('Erro ao gerar o PDF das recomendações. Tente novamente.');
+    }
   };
 
   return (
@@ -105,9 +98,12 @@ Gerado pela Plataforma ALIA
             Análise Técnica
           </h3>
           <div className="bg-blue-50 p-4 rounded-lg">
-            <p className="text-gray-800 leading-relaxed whitespace-pre-line">
-              {analysis.analysis}
-            </p>
+            <div 
+              className="text-gray-800 leading-relaxed"
+              dangerouslySetInnerHTML={{ 
+                __html: formatTextForDisplay(analysis.analysis) 
+              }}
+            />
           </div>
         </div>
 
@@ -118,9 +114,12 @@ Gerado pela Plataforma ALIA
             Recomendações
           </h3>
           <div className="bg-orange-50 p-4 rounded-lg">
-            <p className="text-gray-800 leading-relaxed whitespace-pre-line">
-              {analysis.recommendations}
-            </p>
+            <div 
+              className="text-gray-800 leading-relaxed"
+              dangerouslySetInnerHTML={{ 
+                __html: formatTextForDisplay(analysis.recommendations) 
+              }}
+            />
           </div>
         </div>
 
@@ -141,21 +140,43 @@ Gerado pela Plataforma ALIA
       </div>
 
       {/* Actions */}
-      <div className="bg-gray-50 px-6 py-4 flex flex-col sm:flex-row gap-3 sm:justify-between">
-        <button
-          onClick={handleDownloadReport}
-          className="flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          <Download className="w-4 h-4 mr-2" />
-          Baixar Laudo
-        </button>
-        
-        <button
-          onClick={onNewAnalysis}
-          className="flex items-center justify-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-        >
-          Nova Análise
-        </button>
+      <div className="bg-gray-50 px-6 py-4">
+        <div className="flex flex-col space-y-3">
+          <div className="flex flex-col sm:flex-row gap-3 sm:justify-between">
+            <button
+              onClick={handleDownloadComplete}
+              className="flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Baixar Laudo Completo
+            </button>
+            
+            <button
+              onClick={onNewAnalysis}
+              className="flex items-center justify-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+            >
+              Nova Análise
+            </button>
+          </div>
+          
+          <div className="flex flex-col sm:flex-row gap-3">
+            <button
+              onClick={handleDownloadAnalysis}
+              className="flex-1 flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+            >
+              <FileDown className="w-4 h-4 mr-2" />
+              Baixar Apenas Análise
+            </button>
+            
+            <button
+              onClick={handleDownloadRecommendations}
+              className="flex-1 flex items-center justify-center px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+            >
+              <FileDown className="w-4 h-4 mr-2" />
+              Baixar Apenas Recomendações
+            </button>
+          </div>
+        </div>
       </div>
     </motion.div>
   );
